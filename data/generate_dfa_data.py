@@ -18,11 +18,13 @@ RPDC_LIST = [
     {"id": "RPDC-DET", "name": "Detroit RPDC", "city": "Detroit", "state": "MI", "lat": 42.3314, "lon": -83.0458, "sqft": 800000, "status": "In Progress", "launch_date": "2024-10-15", "wave": "Wave 7", "notes": "Renovating existing facility with modernized package processing equipment."},
     {"id": "RPDC-PHX", "name": "Phoenix RPDC", "city": "Phoenix", "state": "AZ", "lat": 33.4484, "lon": -112.0740, "sqft": 920000, "status": "In Progress", "launch_date": "2025-01-20", "wave": "Wave 8", "notes": "Southwest growth corridor regional processing mega-center."},
     {"id": "RPDC-BOS", "name": "North Reading RPDC (Boston Metro)", "city": "North Reading", "state": "MA", "lat": 42.5784, "lon": -71.0778, "sqft": 780000, "status": "In Progress", "launch_date": "2025-02-15", "wave": "Wave 8", "notes": "Consolidation of Greater Boston parcel handling."},
+    {"id": "RPDC-STL", "name": "St. Louis Processing & Distribution Center (Hazelwood)", "city": "Hazelwood / St. Louis", "state": "MO", "lat": 38.7714, "lon": -90.3708, "sqft": 920000, "status": "Operational", "launch_date": "2024-04-15", "wave": "Wave 6", "notes": "Central Midwest hub handling eastern Missouri and southern Illinois; primary regional parcel and automated mail processing center."},
     {"id": "RPDC-RNO", "name": "Reno Processing Center", "city": "Reno", "state": "NV", "lat": 39.5296, "lon": -119.8138, "sqft": 450000, "status": "Paused", "launch_date": "Paused", "wave": "Wave 7", "notes": "Downsizing paused following Senate inquiries and community opposition over winter mountain passes."},
     {"id": "RPDC-GRI", "name": "Grand Island Processing Center", "city": "Grand Island", "state": "NE", "lat": 40.9264, "lon": -98.3420, "sqft": 320000, "status": "Paused", "launch_date": "Paused", "wave": "Wave 7", "notes": "Consolidation into Omaha paused pending PRC advisory opinion."},
 ]
 
 LPC_LIST = [
+    {"id": "LPC-STL", "name": "St. Louis Local Processing Center", "city": "St. Louis", "state": "MO", "lat": 38.6270, "lon": -90.1994, "sqft": 460000, "status": "Operational", "rpdc_id": "RPDC-STL"},
     {"id": "LPC-ATL", "name": "Atlanta Local Processing Center", "city": "Atlanta", "state": "GA", "lat": 33.7490, "lon": -84.3880, "sqft": 480000, "status": "Operational", "rpdc_id": "RPDC-ATL"},
     {"id": "LPC-RIC", "name": "Richmond Local Processing Center", "city": "Richmond", "state": "VA", "lat": 37.5407, "lon": -77.4360, "sqft": 420000, "status": "Operational", "rpdc_id": "RPDC-RIC"},
     {"id": "LPC-HOU", "name": "South Houston Local Processing Center", "city": "Missouri City", "state": "TX", "lat": 29.6186, "lon": -95.5377, "sqft": 510000, "status": "Operational", "rpdc_id": "RPDC-HOU"},
@@ -60,6 +62,7 @@ SDC_LIST = [
     {"id": "SDC-SBN", "name": "South Bend S&DC", "city": "South Bend", "state": "IN", "lat": 41.6764, "lon": -86.2520, "sqft": 128000, "status": "Operational", "wave": "Wave 4", "launch_date": "2023-09-09", "rpdc_id": "RPDC-IND", "ev_chargers": 50, "spoke_count": 8, "routes": 94},
 
     # Wave 5 (Jan/Feb 2024)
+    {"id": "SDC-STL", "name": "St. Louis S&DC (Downtown/Chouteau)", "city": "St. Louis", "state": "MO", "lat": 38.6235, "lon": -90.2105, "sqft": 145000, "status": "Operational", "wave": "Wave 5", "launch_date": "2024-01-20", "rpdc_id": "RPDC-STL", "ev_chargers": 58, "spoke_count": 8, "routes": 106},
     {"id": "SDC-PAL", "name": "Palmetto S&DC", "city": "Palmetto", "state": "GA", "lat": 33.5250, "lon": -84.6650, "sqft": 210000, "status": "Operational", "wave": "Wave 5", "launch_date": "2024-01-13", "rpdc_id": "RPDC-ATL", "ev_chargers": 88, "spoke_count": 12, "routes": 154},
     {"id": "SDC-BKN", "name": "Brooklyn Cadman S&DC", "city": "Brooklyn", "state": "NY", "lat": 40.6928, "lon": -73.9903, "sqft": 160000, "status": "Operational", "wave": "Wave 5", "launch_date": "2024-01-13", "rpdc_id": "RPDC-BET", "ev_chargers": 60, "spoke_count": 6, "routes": 112},
     {"id": "SDC-TAC", "name": "Tacoma S&DC", "city": "Tacoma", "state": "WA", "lat": 47.2529, "lon": -122.4443, "sqft": 145000, "status": "Operational", "wave": "Wave 5", "launch_date": "2024-02-24", "rpdc_id": "RPDC-PDX", "ev_chargers": 58, "spoke_count": 9, "routes": 118},

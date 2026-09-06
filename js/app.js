@@ -76,6 +76,103 @@ class DFATrackerApp {
       this.updateDashboard();
     });
 
+    // Map Quick-Search Bar with Autocomplete & Fly-To
+    const mapSearchInput = document.getElementById('mapSearchInput');
+    const mapSearchResults = document.getElementById('mapSearchResults');
+    const clearMapSearchBtn = document.getElementById('clearMapSearchBtn');
+
+    const handleMapSearch = (query) => {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        if (mapSearchResults) mapSearchResults.style.display = 'none';
+        if (clearMapSearchBtn) clearMapSearchBtn.style.display = 'none';
+        return;
+      }
+
+      if (clearMapSearchBtn) clearMapSearchBtn.style.display = 'flex';
+
+      const matches = this.loader.facilities.filter(f =>
+        f.name.toLowerCase().includes(q) ||
+        f.city.toLowerCase().includes(q) ||
+        f.state.toLowerCase().includes(q) ||
+        f.facility_id.toLowerCase().includes(q)
+      ).slice(0, 8);
+
+      if (!matches.length) {
+        mapSearchResults.innerHTML = `
+          <div style="padding: 0.75rem; color: var(--text-dim); text-align: center; font-size: 0.75rem;">
+            No facilities found matching "${query}"
+          </div>
+        `;
+        mapSearchResults.style.display = 'block';
+        return;
+      }
+
+      mapSearchResults.innerHTML = matches.map(f => {
+        const badgeClass = f.type === 'RPDC' ? 'badge-rpdc' : (f.type === 'LPC' ? 'badge-lpc' : (f.type === 'S&DC' ? 'badge-sdc' : 'badge-spoke'));
+        return `
+          <div class="map-search-item" data-id="${f.facility_id}">
+            <div class="search-item-main">
+              <span class="search-item-title">${f.name}</span>
+              <span class="search-item-sub">${f.city}, ${f.state} • ${f.facility_id}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <span class="badge-tier ${badgeClass}">${f.type}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      mapSearchResults.querySelectorAll('.map-search-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const fid = item.getAttribute('data-id');
+          const fac = this.loader.getFacilityById(fid);
+          if (fac) {
+            this.focusFacility(fac);
+          }
+        });
+      });
+
+      mapSearchResults.style.display = 'block';
+    };
+
+    mapSearchInput?.addEventListener('input', (e) => {
+      handleMapSearch(e.target.value);
+    });
+
+    mapSearchInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const q = mapSearchInput.value.trim().toLowerCase();
+        const matches = this.loader.facilities.filter(f =>
+          f.name.toLowerCase().includes(q) ||
+          f.city.toLowerCase().includes(q) ||
+          f.state.toLowerCase().includes(q) ||
+          f.facility_id.toLowerCase().includes(q)
+        );
+        if (matches.length) {
+          this.focusFacility(matches[0]);
+        }
+      } else if (e.key === 'Escape') {
+        if (mapSearchResults) mapSearchResults.style.display = 'none';
+      }
+    });
+
+    clearMapSearchBtn?.addEventListener('click', () => {
+      if (mapSearchInput) mapSearchInput.value = '';
+      if (mapSearchResults) mapSearchResults.style.display = 'none';
+      if (clearMapSearchBtn) clearMapSearchBtn.style.display = 'none';
+      this.map.setSelected(null);
+      this.map.resetZoom();
+      this.inspector.close();
+    });
+
+    // Close map search dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.map-search-wrapper')) {
+        if (mapSearchResults) mapSearchResults.style.display = 'none';
+      }
+    });
+
     // Reset Filters
     const resetBtn = document.getElementById('resetFiltersBtn');
     resetBtn?.addEventListener('click', () => {
@@ -142,10 +239,23 @@ class DFATrackerApp {
     this.charts.renderTransitionCurve('transitionChartContainer', facility.name);
   }
 
+  focusFacility(facility) {
+    if (!facility) return;
+    const mapSearchInput = document.getElementById('mapSearchInput');
+    if (mapSearchInput) mapSearchInput.value = facility.name;
+    const mapSearchResults = document.getElementById('mapSearchResults');
+    if (mapSearchResults) mapSearchResults.style.display = 'none';
+    const clearBtn = document.getElementById('clearMapSearchBtn');
+    if (clearBtn) clearBtn.style.display = 'flex';
+
+    this.map.flyTo(facility.latitude, facility.longitude, 2.5);
+    this.handleSelectFacility(facility);
+  }
+
   selectFacilityById(id) {
     const fac = this.loader.getFacilityById(id);
     if (fac) {
-      this.handleSelectFacility(fac);
+      this.focusFacility(fac);
     }
   }
 
@@ -160,8 +270,15 @@ class DFATrackerApp {
     if (wf) wf.value = 'ALL';
     const si = document.getElementById('facilitySearch');
     if (si) si.value = '';
+    const msi = document.getElementById('mapSearchInput');
+    if (msi) msi.value = '';
+    const msr = document.getElementById('mapSearchResults');
+    if (msr) msr.style.display = 'none';
+    const clr = document.getElementById('clearMapSearchBtn');
+    if (clr) clr.style.display = 'none';
 
     this.map.setSelected(null);
+    this.map.resetZoom();
     this.inspector.close();
     this.updateDashboard();
   }

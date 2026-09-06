@@ -91,6 +91,48 @@ export class NetworkMap {
   }
 
   /**
+   * Smoothly center and zoom the map directly onto a specific facility's coordinates.
+   */
+  flyTo(lat, lon, zoomScale = 2.5) {
+    const phi = (lat * Math.PI) / 180;
+    const lam = (lon * Math.PI) / 180;
+    const theta = this.n * (lam - this.lambda0);
+    let term = this.c - 2 * this.n * Math.sin(phi);
+    if (term < 0) term = 0;
+    const rho = Math.sqrt(term) / this.n;
+
+    let normX = rho * Math.sin(theta);
+    let normY = -(this.rho0 - rho * Math.cos(theta));
+
+    if (lon < -130 && lat > 50) {
+      normX = (normX - (-0.45)) * 0.35 - 0.28;
+      normY = (normY - (-0.48)) * 0.35 + 0.16;
+    } else if (lon < -150 && lat < 25) {
+      normX = (normX - (-0.40)) * 0.8 - 0.16;
+      normY = (normY - (0.15)) * 0.8 + 0.18;
+    } else if (lat < 20 && lon > -70) {
+      normX = (normX - (0.42)) * 0.8 + 0.28;
+      normY = (normY - (0.28)) * 0.8 + 0.18;
+    }
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = this.canvas.width / dpr;
+    const h = this.canvas.height / dpr;
+
+    const pad = 35;
+    const scaleFactor = Math.min((w - pad * 2) / 0.74, (h - pad * 2) / 0.48);
+
+    const baseX = w / 2 + (normX - (-0.0078)) * scaleFactor;
+    const baseY = h / 2 + (normY - (-0.0208)) * scaleFactor;
+
+    this.scale = zoomScale;
+    this.panX = -(baseX - w / 2) * this.scale;
+    this.panY = -(baseY - h / 2) * this.scale;
+
+    this.render();
+  }
+
+  /**
    * Albers Equal-Area Conic projection for the United States with inset support.
    */
   project(lat, lon) {
@@ -385,6 +427,38 @@ export class NetworkMap {
       ctx.beginPath();
       ctx.arc(0, 0, r, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    if (isSelected) {
+      // Draw targeting radar ring
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, Math.PI * 2);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw facility floating label pill
+      ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      const text = `${f.name} (${f.city}, ${f.state})`;
+      const textWidth = ctx.measureText(text).width;
+      
+      ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.7)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(-textWidth / 2 - 8, -36, textWidth + 16, 20, 4);
+      } else {
+        ctx.rect(-textWidth / 2 - 8, -36, textWidth + 16, 20);
+      }
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.fillText(text, 0, -22);
     }
 
     ctx.restore();

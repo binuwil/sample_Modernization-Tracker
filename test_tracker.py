@@ -46,14 +46,14 @@ def run_tests():
         data = json.load(f)
         assert "facilities" in data
         assert "connections" in data
-        assert len(data["facilities"]) == 200
-        assert len(data["connections"]) == 183
-        assert data["rpdc_count"] == 17
-        assert data["lpc_count"] == 15
-        assert data["sdc_count"] == 20
-        assert data["spoke_count"] == 148
+        assert len(data["facilities"]) == 211
+        assert len(data["connections"]) == 193
+        assert data["rpdc_count"] == 18
+        assert data["lpc_count"] == 16
+        assert data["sdc_count"] == 21
+        assert data["spoke_count"] == 156
     passed += 1
-    print(f"✅ [2/5] Facilities JSON dataset verified: 200 facilities & 183 connections.")
+    print(f"✅ [2/5] Facilities JSON dataset verified: 211 facilities & 193 connections.")
 
     # Test 3: Verify CSV dataset integrity & schema
     total += 1
@@ -68,9 +68,9 @@ def run_tests():
         for eh in expected_headers:
             assert eh in headers, f"Missing header {eh} in CSV"
         rows = list(reader)
-        assert len(rows) == 200, f"Expected 200 rows, got {len(rows)}"
+        assert len(rows) == 211, f"Expected 211 rows, got {len(rows)}"
     passed += 1
-    print(f"✅ [3/5] Facilities CSV dataset verified: 200 rows matching schema.")
+    print(f"✅ [3/5] Facilities CSV dataset verified: 211 rows matching schema.")
 
     # Test 4: Verify Network Hub-and-Spoke Referential Integrity
     total += 1
