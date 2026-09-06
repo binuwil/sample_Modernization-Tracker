@@ -37,6 +37,7 @@ class DFATrackerApp {
     this.map = new NetworkMap('networkCanvas', 'networkTooltip', (facility) => {
       this.handleSelectFacility(facility);
     });
+    await this.map.init();
 
     this.inspector = new FacilityInspector('facilityDrawer', 'drawerCloseBtn', this.loader, (fac) => {
       this.handleSelectFacility(fac);

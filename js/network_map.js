@@ -1,6 +1,7 @@
 /**
  * USPS DFA Tracker - Interactive Network Map Visualizer
- * High-performance Canvas renderer displaying multi-tier facility nodes and hub-and-spoke spider lines.
+ * High-performance Canvas renderer displaying US state geographic boundaries,
+ * multi-tier facility nodes, and dynamic hub-and-spoke spider connections.
  */
 
 export class NetworkMap {
@@ -12,6 +13,7 @@ export class NetworkMap {
 
     this.facilities = [];
     this.connections = [];
+    this.geoData = null;
     this.selectedFacility = null;
     this.hoveredFacility = null;
 
@@ -22,9 +24,31 @@ export class NetworkMap {
     this.isDragging = false;
     this.dragStart = { x: 0, y: 0 };
 
+    // Standard Albers projection parameters for United States
+    this.phi1 = (29.5 * Math.PI) / 180;
+    this.phi2 = (45.5 * Math.PI) / 180;
+    this.phi0 = (37.5 * Math.PI) / 180;
+    this.lambda0 = (-96.0 * Math.PI) / 180;
+
+    this.n = 0.5 * (Math.sin(this.phi1) + Math.sin(this.phi2));
+    this.c = Math.cos(this.phi1) ** 2 + 2 * this.n * Math.sin(this.phi1);
+    this.rho0 = Math.sqrt(this.c - 2 * this.n * Math.sin(this.phi0)) / this.n;
+
     if (this.canvas) {
       this.setupEventListeners();
       this.resize();
+    }
+  }
+
+  async init() {
+    try {
+      const res = await fetch('data/us_states.json');
+      if (res.ok) {
+        this.geoData = await res.json();
+        this.render();
+      }
+    } catch (e) {
+      console.warn("Could not load us_states.json boundary data:", e);
     }
   }
 
@@ -66,24 +90,49 @@ export class NetworkMap {
     this.render();
   }
 
-  // Convert lat/lon to Canvas coordinate (Albers-like bounding box: Lon -126 to -66, Lat 24 to 50)
+  /**
+   * Albers Equal-Area Conic projection for the United States with inset support.
+   */
   project(lat, lon) {
-    const w = this.canvas.width / window.devicePixelRatio;
-    const h = this.canvas.height / window.devicePixelRatio;
+    const phi = (lat * Math.PI) / 180;
+    const lam = (lon * Math.PI) / 180;
+    const theta = this.n * (lam - this.lambda0);
+    let term = this.c - 2 * this.n * Math.sin(phi);
+    if (term < 0) term = 0;
+    const rho = Math.sqrt(term) / this.n;
 
-    const padX = w * 0.08;
-    const padY = h * 0.1;
-    const plotW = w - (padX * 2);
-    const plotH = h - (padY * 2);
+    let normX = rho * Math.sin(theta);
+    let normY = -(this.rho0 - rho * Math.cos(theta)); // Screen Y (north is negative Y)
 
-    let x = ((lon - (-125)) / (125 - 66)) * plotW + padX;
-    let y = ((50 - lat) / (50 - 24)) * plotH + padY;
+    // Inset handling for Alaska, Hawaii, and Puerto Rico
+    if (lon < -130 && lat > 50) {
+      // Alaska
+      normX = (normX - (-0.45)) * 0.35 - 0.28;
+      normY = (normY - (-0.48)) * 0.35 + 0.16;
+    } else if (lon < -150 && lat < 25) {
+      // Hawaii
+      normX = (normX - (-0.40)) * 0.8 - 0.16;
+      normY = (normY - (0.15)) * 0.8 + 0.18;
+    } else if (lat < 20 && lon > -70) {
+      // Puerto Rico
+      normX = (normX - (0.42)) * 0.8 + 0.28;
+      normY = (normY - (0.28)) * 0.8 + 0.18;
+    }
 
-    // Apply pan & zoom
-    x = (x - w / 2) * this.scale + w / 2 + this.panX;
-    y = (y - h / 2) * this.scale + h / 2 + this.panY;
+    const dpr = window.devicePixelRatio || 1;
+    const w = this.canvas.width / dpr;
+    const h = this.canvas.height / dpr;
 
-    return { x, y };
+    const pad = 35;
+    const scaleFactor = Math.min((w - pad * 2) / 0.74, (h - pad * 2) / 0.48);
+
+    const baseX = w / 2 + (normX - (-0.0078)) * scaleFactor;
+    const baseY = h / 2 + (normY - (-0.0208)) * scaleFactor;
+
+    const finalX = (baseX - w / 2) * this.scale + w / 2 + this.panX;
+    const finalY = (baseY - h / 2) * this.scale + h / 2 + this.panY;
+
+    return { x: finalX, y: finalY };
   }
 
   setupEventListeners() {
@@ -155,13 +204,16 @@ export class NetworkMap {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
 
-    // Draw stylized US map outline reference grid
+    // 1. Draw subtle background coordinate grid
     this.drawBackgroundGrid(ctx, w, h);
 
-    // Draw active Hub-and-Spoke Spider lines
+    // 2. Draw official US State geographic boundaries and landmass fills
+    this.drawStateBoundaries(ctx);
+
+    // 3. Draw active Hub-and-Spoke Spider lines
     this.drawConnections(ctx);
 
-    // Draw facility nodes by tier (Spokes -> LPCs -> S&DCs -> RPDCs)
+    // 4. Draw facility nodes by tier (Spokes -> LPCs -> S&DCs -> RPDCs)
     const tierOrder = ['SPOKE', 'LPC', 'S&DC', 'RPDC'];
     tierOrder.forEach(tier => {
       this.facilities.filter(f => f.type === tier).forEach(f => {
@@ -173,10 +225,9 @@ export class NetworkMap {
   }
 
   drawBackgroundGrid(ctx, w, h) {
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.02)";
     ctx.lineWidth = 1;
 
-    // Grid lines
     for (let x = 0; x < w; x += 60) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
@@ -191,10 +242,44 @@ export class NetworkMap {
     }
   }
 
+  drawStateBoundaries(ctx) {
+    if (!this.geoData || !this.geoData.features) return;
+
+    ctx.save();
+
+    // Fill each state with dark glassmorphism styling
+    ctx.fillStyle = "rgba(18, 26, 44, 0.65)";
+    ctx.strokeStyle = "rgba(71, 85, 105, 0.35)"; // subtle state border
+    ctx.lineWidth = 1.0;
+
+    this.geoData.features.forEach(feat => {
+      const geom = feat.geometry;
+      if (!geom) return;
+
+      const polygons = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+
+      polygons.forEach(poly => {
+        poly.forEach(ring => {
+          if (!ring.length) return;
+          ctx.beginPath();
+          ring.forEach((pt, idx) => {
+            const coords = this.project(pt[1], pt[0]);
+            if (idx === 0) ctx.moveTo(coords.x, coords.y);
+            else ctx.lineTo(coords.x, coords.y);
+          });
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        });
+      });
+    });
+
+    ctx.restore();
+  }
+
   drawConnections(ctx) {
     if (!this.connections.length) return;
 
-    // If an S&DC or RPDC is selected, highlight its connections
     const activeHubId = this.selectedFacility ? this.selectedFacility.facility_id : null;
 
     this.connections.forEach(conn => {
@@ -213,11 +298,11 @@ export class NetworkMap {
       ctx.lineTo(p2.x, p2.y);
 
       if (isConnectedToActive) {
-        ctx.strokeStyle = "rgba(56, 189, 248, 0.85)";
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.9)";
         ctx.lineWidth = 2.5;
         ctx.setLineDash([4, 3]);
       } else {
-        ctx.strokeStyle = "rgba(56, 189, 248, 0.08)";
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.12)";
         ctx.lineWidth = 1;
         ctx.setLineDash([]);
       }
@@ -254,7 +339,7 @@ export class NetworkMap {
       // Outer glow pulse
       ctx.beginPath();
       ctx.arc(0, 0, size * 1.6, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.3)";
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
       ctx.lineWidth = 1.5;
       ctx.stroke();
 

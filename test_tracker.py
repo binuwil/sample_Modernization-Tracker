@@ -28,6 +28,7 @@ def run_tests():
         "js/data_loader.js",
         "data/facilities.json",
         "data/facilities.csv",
+        "data/us_states.json",
         "serve.py",
         "README.md"
     ]
